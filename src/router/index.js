@@ -13,9 +13,18 @@ const router = createRouter({
       redirect: '/home',
       children: [
         {
-          path:'home',
-          name : 'Home',
+          path:'homeView',
+          name : 'HomeView',
           component: ()=> import('../views/HomeView.vue')
+        },
+        {path: 'person',
+          name: 'Person',
+          component: () => import('../views/Person.vue')
+        },
+
+        { path: 'password',
+          name: 'Password',
+          component: () => import('../views/Password.vue')
         },
        ]
     },
@@ -28,6 +37,16 @@ const router = createRouter({
       path:'/error',
       name : 'Error',
       component: ()=> import('../views/Error.vue')
+    },
+    {
+      path: '/register',
+      name: 'Register',
+      component: () => import('../views/Register.vue')
+    },
+    {
+      path: '/home',
+      name: 'Home',
+      component: () => import('../views/Home.vue')
     },
   ]
 })
@@ -65,10 +84,12 @@ router.beforeEach((to, from, next) => {
   if (to.path.startsWith('/login')) {
     window.localStorage.removeItem('access-admin')
     next()
-  } else {
+  } else if(to.path === '/register'){
+    next();
+  }else {
     let admin = JSON.parse(window.localStorage.getItem('access-admin'))
     if (!admin) {
-      if(to.path =='/login'){
+      if(to.path ==='/login'){
         next();
       }else{
         next({path: '/login'})

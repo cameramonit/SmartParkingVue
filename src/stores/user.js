@@ -12,6 +12,9 @@ export const useUserStore = defineStore('manager', {
         getUser() {
             return this.managerInfo.user || {}
         },
+        getFlag() {
+            return this.managerInfo.user ? this.managerInfo.user.flag : 'USER'
+        },
         // getBearerToken() {
         //     return this.managerInfo.token ? 'Bearer ' + this.managerInfo.token : ''
         // },

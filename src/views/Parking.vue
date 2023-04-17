@@ -10,11 +10,10 @@ const name = ref('')
 const pageNum = ref(1)
 const pageSize = ref(5)
 const total = ref(0)
-
 const userStore = useUserStore()
 const token = userStore.getBearerToken
 const auths =  userStore.getAuths
-
+const flag = userStore.getFlag
 const state = reactive({
   tableData: [],
   form: {}
@@ -128,34 +127,13 @@ const del = (id) => {
     }
   })
 }
-
-// 导出接口
-const exportData = () => {
-  window.open(`http://${config.serverUrl}/parking/export`)
-}
-
-
-const handleImportSuccess = () => {
-  // 刷新表格
-  load()
-  ElMessage.success("导入成功")
-}
-
-const handleFileUploadSuccess = (res) => {
-  state.form.file = res.data
-  ElMessage.success('上传成功')
-}
-const handleImgUploadSuccess = (res) => {
-  state.form.img = res.data
-  ElMessage.success('上传成功')
-}
 </script>
 
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入名称" class="w300" />
-      <el-button type="primary" class="ml5" @click="load">
+      <el-input v-model="name" placeholder="请输入名称" class="w300" style="width: 300px"/>
+      <el-button type="primary" class="ml5" @click="load" style="margin-left: 10px">
         <el-icon style="vertical-align: middle">
           <Search />
         </el-icon>  <span style="vertical-align: middle"> 搜索 </span>
@@ -174,26 +152,7 @@ const handleImgUploadSuccess = (res) => {
           <Plus />
         </el-icon>  <span style="vertical-align: middle"> 新增 </span>
       </el-button>
-      <el-upload
-          v-if="auths.includes('parking.import')"
-          class="ml5"
-          :show-file-list="false"
-          style="display: inline-block; position: relative; top: 3px"
-          :action='`http://${config.serverUrl}/parking/import`'
-          :on-success="handleImportSuccess"
-          :headers="{ Authorization: token}"
-      >
-        <el-button type="primary">
-          <el-icon style="vertical-align: middle">
-            <Bottom />
-          </el-icon>  <span style="vertical-align: middle"> 导入 </span>
-        </el-button>
-      </el-upload>
-      <el-button type="primary" @click="exportData" class="ml5" v-if="auths.includes('parking.export')">
-        <el-icon style="vertical-align: middle">
-          <Top />
-        </el-icon>  <span style="vertical-align: middle"> 导出 </span>
-      </el-button>
+
       <el-popconfirm title="您确定删除吗？" @confirm="confirmDelBatch" v-if="auths.includes('parking.deleteBatch')">
         <template #reference>
           <el-button type="danger" style="margin-left: 5px">
@@ -215,6 +174,7 @@ const handleImgUploadSuccess = (res) => {
       <el-table-column prop="freeTime" label="免费时长"></el-table-column>
       <el-table-column prop="timeUnit" label="计时单元"></el-table-column>
       <el-table-column prop="unitCost" label="单元收费"></el-table-column>
+        <el-table-column prop="admin" label="管理员" v-if="flag==='SUPERADMIN'"></el-table-column>
 
         <el-table-column label="操作" width="180">
           <template #default="scope">
@@ -244,20 +204,22 @@ const handleImgUploadSuccess = (res) => {
 
     <el-dialog v-model="dialogFormVisible" title="停车场信息" width="40%">
       <el-form ref="ruleFormRef" :rules="rules" :model="state.form" label-width="80px" style="padding: 0 20px" status-icon>
-        <el-form-item prop="pid" label="停车场唯一">
+        <el-form-item prop="pid" label="停车场">
           <el-input v-model="state.form.pid" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item prop="name" label="名称">
+        <el-form-item prop="name" label="名称">id
           <el-input v-model="state.form.name" autocomplete="off"></el-input>
         </el-form-item>
         <el-form-item prop="parkingSpaceNumber" label="车位数量">
           <el-input v-model="state.form.parkingSpaceNumber" autocomplete="off"></el-input>
         </el-form-item>
         <el-form-item prop="freeTime" label="免费时长">
-          <el-date-picker style="width: 100%" v-model="state.form.freeTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="选择日期时间"></el-date-picker>
+          <el-input v-model="state.form.freeTime" autocomplete="off" placeholder="输入免费时长"></el-input>
+          <span class="el-form-item__error">按分钟为单位</span>
         </el-form-item>
         <el-form-item prop="timeUnit" label="计时单元">
-          <el-date-picker style="width: 100%" v-model="state.form.timeUnit" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="选择日期时间"></el-date-picker>
+          <el-input v-model="state.form.timeUnit" autocomplete="off" placeholder="输入免费时长"></el-input>
+          <span class="el-form-item__error">按分钟为单位</span>
         </el-form-item>
         <el-form-item prop="unitCost" label="单元收费">
           <el-input v-model="state.form.unitCost" autocomplete="off"></el-input>

@@ -4,19 +4,22 @@ import request from "@/utils/request";
 import {ElMessage} from "element-plus";
 import config from "../../config";
 import {useUserStore} from "@/stores/user";
-import { onBeforeUnmount, shallowRef} from "vue" 
-// import '@wangeditor/editor/dist/css/style.css' // 引入 css
-// import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
+import { onBeforeUnmount, shallowRef} from "vue"
+import '@wangeditor/editor/dist/css/style.css' // 引入 css
+import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 
 
 const name = ref('')
 const pageNum = ref(1)
 const pageSize = ref(5)
 const total = ref(0)
-
 const userStore = useUserStore()
 const token = userStore.getBearerToken
 const auths =  userStore.getAuths
+const user = userStore.getUser
+const  uid = userStore.getUserId
+const username = user.name
+const flag = userStore.getFlag
 
 const state = reactive({
   tableData: [],
@@ -78,19 +81,35 @@ const confirmDelBatch = () => {
     }
   })
 }
-
 const load = () => {
-  request.get('/suggestion/page', {
-    params: {
-      name: name.value,
-      pageNum: pageNum.value,
-      pageSize: pageSize.value
-    }
-  }).then(res => {
-    state.tableData = res.data.records
-    total.value = res.data.total
-  })
+  if (flag==="USER"){
+    request.get('/suggestion/findSuggestionByUid', {
+      params: {
+        uid: uid,
+        name: name.value,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
+      }
+    }).then(res => {
+      state.tableData = res.data.records
+      total.value = res.data.total
+
+    })
+  }else{
+    request.get('/suggestion/page', {
+      params: {
+        name: name.value,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
+      }
+    }).then(res => {
+      state.tableData = res.data.records
+      total.value = res.data.total
+
+    })
+  }
 }
+
 load()  // 调用 load方法拿到后台数据
 
 const reset = () => {
@@ -112,16 +131,14 @@ const handleAdd = () => {
   dialogFormVisible.value = true
   nextTick(() => {
     ruleFormRef.value.resetFields()
-    state.form = {}
+    state.form = {uid,username}
     valueHtml.value = ''  // 富文本
   })
 }
-
 // 保存
 const save = () => {
   ruleFormRef.value.validate(valid => {   // valid就是校验的结果
     if (valid) {
-      state.form.content = valueHtml.value  // 富文本保存内容
       request.request({
         url: '/suggestion',
         method: state.form.id ? 'put' : 'post',
@@ -161,38 +178,24 @@ const del = (id) => {
   })
 }
 
-// 导出接口
-const exportData = () => {
-  window.open(`http://${config.serverUrl}/suggestion/export`)
-}
-
-
 const handleImportSuccess = () => {
   // 刷新表格
   load()
   ElMessage.success("导入成功")
 }
 
-const handleFileUploadSuccess = (res) => {
-  state.form.file = res.data
-  ElMessage.success('上传成功')
-}
-const handleImgUploadSuccess = (res) => {
-  state.form.img = res.data
-  ElMessage.success('上传成功')
-}
 </script>
 
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入名称" class="w300" />
-      <el-button type="primary" class="ml5" @click="load">
-        <el-icon style="vertical-align: middle">
+      <el-input v-model="name" placeholder="请输入用户名来查询" class="w300"  style="margin-top: 5px;width: 300px"/>
+      <el-button type="primary" class="ml5" @click="load" style="margin-left: 5px;margin-top: 5px">
+        <el-icon style="vertical-align: middle;">
           <Search />
         </el-icon>  <span style="vertical-align: middle"> 搜索 </span>
       </el-button>
-      <el-button type="warning" class="ml5" @click="reset">
+      <el-button type="warning" class="ml5" @click="reset" style="margin-top: 5px">
         <el-icon style="vertical-align: middle">
           <RefreshLeft />
         </el-icon>  <span style="vertical-align: middle"> 重置 </span>
@@ -206,29 +209,9 @@ const handleImgUploadSuccess = (res) => {
           <Plus />
         </el-icon>  <span style="vertical-align: middle"> 新增 </span>
       </el-button>
-      <el-upload
-          v-if="auths.includes('suggestion.import')"
-          class="ml5"
-          :show-file-list="false"
-          style="display: inline-block; position: relative; top: 3px"
-          :action='`http://${config.serverUrl}/suggestion/import`'
-          :on-success="handleImportSuccess"
-          :headers="{ Authorization: token}"
-      >
-        <el-button type="primary">
-          <el-icon style="vertical-align: middle">
-            <Bottom />
-          </el-icon>  <span style="vertical-align: middle"> 导入 </span>
-        </el-button>
-      </el-upload>
-      <el-button type="primary" @click="exportData" class="ml5" v-if="auths.includes('suggestion.export')">
-        <el-icon style="vertical-align: middle">
-          <Top />
-        </el-icon>  <span style="vertical-align: middle"> 导出 </span>
-      </el-button>
       <el-popconfirm title="您确定删除吗？" @confirm="confirmDelBatch" v-if="auths.includes('suggestion.deleteBatch')">
         <template #reference>
-          <el-button type="danger" style="margin-left: 5px">
+          <el-button type="danger" style="margin-left: 10px">
             <el-icon style="vertical-align: middle">
               <Remove />
             </el-icon>  <span style="vertical-align: middle"> 批量删除 </span>
@@ -240,14 +223,23 @@ const handleImgUploadSuccess = (res) => {
     <div style="margin: 10px 0">
       <el-table :data="state.tableData" stripe border  @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" />
-      <el-table-column prop="id" label="编号"></el-table-column>
-      <el-table-column prop="sid" label="建议唯一id"></el-table-column>
-      <el-table-column label="预览"><template #default="scope"><el-button @click="view(scope.row.content)">查看</el-button></template></el-table-column>
-      <el-table-column prop="uid" label="用户id"></el-table-column>
-      <el-table-column prop="username" label="用户名"></el-table-column>
+        <el-table-column prop="id" label="编号"></el-table-column>
+        <el-table-column prop="sid" label="建议号"></el-table-column>
 
-        <el-table-column label="操作" width="180">
+        <el-table-column prop="content" label="建议内容"></el-table-column>
+        <el-table-column prop="uid" label="用户id"></el-table-column>
+        <el-table-column prop="username" label="用户名"></el-table-column>
+        <el-table-column prop="state" label="回复状态">
+          <template #default="{row}">
+            <span v-if="row && row.state==0">未回复</span>
+            <span v-else>已回复</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="reply" label="回复内容"></el-table-column>
+
+        <el-table-column label="操作" width="250" v-if="flag === 'SUPERADMIN'">
           <template #default="scope">
+            <el-button type="success" @click="handleEdit(scope.row)" v-if="auths.includes('suggestion.edit') && scope.row.state == 0 &&scope.row.reply == null  ">回复</el-button>
             <el-button type="primary" @click="handleEdit(scope.row)" v-if="auths.includes('suggestion.edit')">编辑</el-button>
             <el-popconfirm title="您确定删除吗？" @confirm="del(scope.row.id)" v-if="auths.includes('suggestion.delete')">
               <template #reference>
@@ -274,31 +266,35 @@ const handleImgUploadSuccess = (res) => {
 
     <el-dialog v-model="dialogFormVisible" title="建议信息" width="40%">
       <el-form ref="ruleFormRef" :rules="rules" :model="state.form" label-width="80px" style="padding: 0 20px" status-icon>
-        <el-form-item prop="sid" label="建议唯一">
-          <el-input v-model="state.form.sid" autocomplete="off"></el-input>
-        </el-form-item>
-        <el-form-item prop="content" label="建议内容">
-          <div style="border: 1px solid #ccc">
-    <Toolbar
-        style="border-bottom: 1px solid #ccc"
-        :editor="editorRef"
-        :mode="'simple'"
-    />
-    <Editor
-        style="height: 300px; overflow-y: hidden;"
-        v-model="valueHtml"
-        :defaultConfig="editorConfig"
-        :mode="'simple'"
-        @onCreated="handleCreated"
-    />
-  </div>        </el-form-item>
+<!--        <el-form-item prop="sid" label="建议唯一">-->
+<!--          <el-input v-model="state.form.sid" autocomplete="off"></el-input>-->
+<!--        </el-form-item>-->
         <el-form-item prop="uid" label="用户">
-          <el-input v-model="state.form.uid" autocomplete="off"></el-input>
+          <el-input v-model="state.form.uid" autocomplete="off" :disabled="true"></el-input>
         </el-form-item>
         <el-form-item prop="username" label="用户名">
-          <el-input v-model="state.form.username" autocomplete="off"></el-input>
+          <el-input v-model="state.form.username" autocomplete="off" :disabled="true"></el-input>
         </el-form-item>
-
+        <el-form-item prop="content" label="建议内容">
+          <!--          <div style="border: 1px solid #ccc">-->
+          <!--            <Toolbar-->
+          <!--                style="border-bottom: 1px solid #ccc"-->
+          <!--                :editor="editorRef"-->
+          <!--                :mode="'simple'"-->
+          <!--            />-->
+          <!--            <Editor-->
+          <!--                style="height: 300px; overflow-y: hidden;"-->
+          <!--                v-model="valueHtml"-->
+          <!--                :defaultConfig="editorConfig"-->
+          <!--                :mode="'simple'"-->
+          <!--                @onCreated="handleCreated"-->
+          <!--            />-->
+          <!--          </div>-->
+          <el-input v-model="state.form.content" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item prop="reply" label="回复内容" v-if="flag!=='USER'">
+          <el-input v-model="state.form.reply" autocomplete="off"></el-input>
+        </el-form-item>
       </el-form>
       <template #footer>
       <span class="dialog-footer">

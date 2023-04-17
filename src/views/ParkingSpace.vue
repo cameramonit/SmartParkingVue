@@ -1,12 +1,12 @@
 <script setup>
-import { nextTick, reactive, ref } from "vue";
+import {nextTick, onMounted, reactive, ref} from "vue";
 import request from "@/utils/request";
 import {ElMessage} from "element-plus";
 import config from "../../config";
 import {useUserStore} from "@/stores/user";
 
 
-const name = ref('')
+const name = ref(0)
 const pageNum = ref(1)
 const pageSize = ref(5)
 const total = ref(0)
@@ -14,10 +14,15 @@ const total = ref(0)
 const userStore = useUserStore()
 const token = userStore.getBearerToken
 const auths =  userStore.getAuths
+const uid = userStore.getUserId
+const  flag = userStore.getFlag
+
+
 
 const state = reactive({
   tableData: [],
-  form: {}
+  form: {},
+  parking: []
 })
 
 const valueHtml = ref('')  // 富文本内容
@@ -48,16 +53,30 @@ const confirmDelBatch = () => {
 }
 
 const load = () => {
-  request.get('/parkingSpace/page', {
-    params: {
-      name: name.value,
-      pageNum: pageNum.value,
-      pageSize: pageSize.value
-    }
-  }).then(res => {
-    state.tableData = res.data.records
-    total.value = res.data.total
-  })
+  if (flag === 'SUPERADMIN'){
+    request.get('/parkingSpace/page', {
+      params: {
+        name: name.value,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
+      }
+    }).then(res => {
+      state.tableData = res.data.records
+      total.value = res.data.total
+    })
+  }else {
+    request.get('/parkingSpace/adminpage', {
+      params: {
+        name: name.value,
+        uid:uid,
+        pageNum: pageNum.value,
+        pageSize: pageSize.value
+      }
+    }).then(res => {
+      state.tableData = res.data.records
+      total.value = res.data.total
+    })
+  }
 }
 load()  // 调用 load方法拿到后台数据
 
@@ -89,7 +108,6 @@ const handleAdd = () => {
 const save = () => {
   ruleFormRef.value.validate(valid => {   // valid就是校验的结果
     if (valid) {
-      state.form.content = valueHtml.value  // 富文本保存内容
       request.request({
         url: '/parkingSpace',
         method: state.form.id ? 'put' : 'post',
@@ -129,32 +147,53 @@ const del = (id) => {
   })
 }
 
-// 导出接口
-const exportData = () => {
-  window.open(`http://${config.serverUrl}/parkingSpace/export`)
+
+const parkingInfo = async () => {
+  try {
+    const response = await request.get('/parking/all')
+    if (response && response.data) {
+      const parking = response.data.map(item => ({
+        label: item.name,
+        value: item.pid
+      }))
+      state.parking = parking
+      state.form.parking = parking[0].value // 给 v-model 赋初始值
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取停车场列表数据失败')
+  }
 }
+onMounted(() => {
+  parkingInfo()
+})
 
 
-const handleImportSuccess = () => {
-  // 刷新表格
-  load()
-  ElMessage.success("导入成功")
-}
-
-const handleFileUploadSuccess = (res) => {
-  state.form.file = res.data
-  ElMessage.success('上传成功')
-}
-const handleImgUploadSuccess = (res) => {
-  state.form.img = res.data
-  ElMessage.success('上传成功')
+const psvalue = ref(0)
+const options = [
+  {
+    value: 0,
+    label: "空闲",
+  },
+  {
+    value: 1,
+    label: '占用',
+  },
+  {
+    value: 2,
+    label: '预约中',
+  },
+]
+const getNameById = (id) => {
+  const parkingLot = state.parking.find(p => p.value === id)
+  return parkingLot ? parkingLot.label : ''
 }
 </script>
 
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入名称" class="w300" />
+      <el-input v-model="name" placeholder="请输入车位号" class="w300" style="width: 300px;" />
       <el-button type="primary" class="ml5" @click="load">
         <el-icon style="vertical-align: middle">
           <Search />
@@ -174,21 +213,7 @@ const handleImgUploadSuccess = (res) => {
           <Plus />
         </el-icon>  <span style="vertical-align: middle"> 新增 </span>
       </el-button>
-      <el-upload
-          v-if="auths.includes('parkingSpace.import')"
-          class="ml5"
-          :show-file-list="false"
-          style="display: inline-block; position: relative; top: 3px"
-          :action='`http://${config.serverUrl}/parkingSpace/import`'
-          :on-success="handleImportSuccess"
-          :headers="{ Authorization: token}"
-      >
-        <el-button type="primary">
-          <el-icon style="vertical-align: middle">
-            <Bottom />
-          </el-icon>  <span style="vertical-align: middle"> 导入 </span>
-        </el-button>
-      </el-upload>
+
       <el-button type="primary" @click="exportData" class="ml5" v-if="auths.includes('parkingSpace.export')">
         <el-icon style="vertical-align: middle">
           <Top />
@@ -209,8 +234,19 @@ const handleImgUploadSuccess = (res) => {
       <el-table :data="state.tableData" stripe border  @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" />
       <el-table-column prop="id" label="编号"></el-table-column>
-      <el-table-column prop="pid" label="停车场id"></el-table-column>
+      <el-table-column label="停车场"  prop="pid">
+        <template #default="{ row }">
+          {{ getNameById(row.pid) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="psNumber" label="车位号"></el-table-column>
+
+        <el-table-column prop="state" label="车位状态">
+          <template #default="{row}">
+            <span v-if="row && row.state===0">空闲</span>
+            <span v-else>占用</span>
+          </template>
+        </el-table-column>
 
         <el-table-column label="操作" width="180">
           <template #default="scope">
@@ -240,12 +276,27 @@ const handleImgUploadSuccess = (res) => {
 
     <el-dialog v-model="dialogFormVisible" title="停车位信息" width="40%">
       <el-form ref="ruleFormRef" :rules="rules" :model="state.form" label-width="80px" style="padding: 0 20px" status-icon>
-        <el-form-item prop="psid" label="车位唯一">
-          <el-input v-model="state.form.psid" autocomplete="off"></el-input>
-        </el-form-item>
         <el-form-item prop="psNumber" label="车位号">
           <el-input v-model="state.form.psNumber" autocomplete="off"></el-input>
         </el-form-item>
+        <el-form-item prop="state" label="车位状态">
+          <el-select v-model="state.form.state" placeholder="车位状态">
+            <el-option
+                v-for="item in options"
+                :key="item.psvalue"
+                :label="item.label"
+                :value="item.value"
+                :disabled="item.disabled"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item prop="parking" label="停车场  : ">
+          <el-select clearable v-model="state.form.pid" placeholder="请选择停车场">
+            <el-option v-for="item in state.parking" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+
 
       </el-form>
       <template #footer>

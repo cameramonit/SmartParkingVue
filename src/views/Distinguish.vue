@@ -1,36 +1,39 @@
 <template>
-  <el-form-item prop="parking" label="停车场: ">
+  <el-form-item prop="parking" label="停车场  : ">
 
-    <el-select clearable v-model="state.form.parking" placeholder="请选择停车场" style="width: 100%">
+    <el-select clearable v-model="state.form.parking" placeholder="请选择停车场" style="width: 300px" >
       <el-option v-for="item in state.parking" :key="item.value" :label="item.label" :value="item.value" />
     </el-select>
 
   </el-form-item>
 
-  <div slot="left" class="demo-split-pane">
-    <video style="height:320px;width: 100%;align-content: center;margin-top: 20px" id="video"></video>
-    <canvas id="qr-canvas"></canvas>
+  <div slot="left" class="demo-split-pane" style="background-color:white;height: 350px;border: 5px solid aliceblue;border-radius: 20px">
+    <video ref="video" style="height:320px;width: 45%;float: left;margin-top: 10px;" id="video"></video>
+    <canvas id="qr-canvas" ref="canvas" style="float: right;height:320px;width: 50%;margin-top: 10px;margin-right: 10px"></canvas>
 
-    <el-button type="warning" class="ml5" @click="openMedia">
+  </div>
+  <div>
+
+    <el-button type="success" class="ml5" @click="openMedia" style="margin: 5px">
       <el-icon style="vertical-align: middle">
-        <RefreshLeft />
+        <SwitchButton />
       </el-icon>  <span style="vertical-align: middle"> 开启摄像头 </span>
     </el-button>
 
 
-    <el-button type="warning" class="ml5" @click="closeMedia">
+    <el-button type="danger" class="ml5" @click="closeMedia" style="margin: 5px">
       <el-icon style="vertical-align: middle">
-        <RefreshLeft />
+        <Close/>
       </el-icon>  <span style="vertical-align: middle"> 关闭摄像头 </span>
     </el-button>
 
 
-    <el-button type="warning" class="ml5" @click="drawMedia">
+    <el-button type="primary " class="ml5" @click="drawMedia" style="margin: 5px">
       <el-icon style="vertical-align: middle">
-        <RefreshLeft />
-      </el-icon>  <span style="vertical-align: middle"> 视频截取 </span>
+        <Camera/>
+      </el-icon>
+      <span style="vertical-align: middle"> 视频截取 </span>
     </el-button>
-
   </div>
 
   <el-upload
@@ -47,28 +50,45 @@
     </div>
   </el-upload>
 </template>
-
 <script setup>
 import { UploadFilled } from '@element-plus/icons-vue'
 import request from "@/utils/request";
 import {onMounted, reactive, ref} from 'vue'
 import { ElMessage } from "element-plus";
+import axios from "axios";
+import {useUserStore} from "@/stores/user";
+
 const uploadData = ref({})
 const licensePlate = ref('')
-
-
+const userStore = useUserStore()
+const user = userStore.getUser
+const username  = user.name
 
 const state = reactive({
   tableData: [],
   form: {},
-  parkingInfo :[]
+   parking: []
 
 })
 
 
 const handleSuccess = (response, file) => {
-  if (response.code == 200) {
+  if (response.code === 200 || response.code==="200") {
     ElMessage.success(response.data)
+  } else if (response.code=== 800  || response.code==="800"){
+    ElMessage.error(response.msg)
+  }else if (response.code===500 || response.code==="500"){
+    ElMessage.error(response.msg)
+  }else if (response.code===801 || response.code==='801'){
+    ElMessage.error(response.msg)
+  }else {
+    ElMessage.error("识别失败"+response.msg+"  "+ response.code)
+  }
+}
+const handleVideoSuccess = (response, file) => {
+  console.log(response.data)
+  if (response.data.code == '200') {
+    ElMessage.success(response.data.data)
   } else {
     ElMessage.error("识别失败"+response.message)
   }
@@ -83,6 +103,7 @@ const parkingInfo = async () => {
         value: item.pid
       }))
       state.parking = parking
+      state.form.parking = parking[0].value // 给 v-model 赋初始值
     }
   } catch (error) {
     console.error(error)
@@ -99,11 +120,13 @@ const handleUpload = (file) => {
     const selectedParking = state.parking.find(p => p.value === state.form.parking)
     if (selectedParking) {
       uploadData.value.name = selectedParking.label
+      uploadData.value.username = username
     }
   }
 }
 
-let canvas, context
+let context
+let canvas
 let video = null
 let mediaStreamTrack
 
@@ -111,7 +134,7 @@ function init() {
   canvas = document.getElementById('qr-canvas')
   context = canvas.getContext('2d')
 
-  // 一堆兼容代码
+ // 一堆兼容代码
   window.URL = (window.URL || window.webkitURL || window.mozURL || window.msURL)
   if (navigator.mediaDevices === undefined) {
     navigator.mediaDevices = {}
@@ -168,14 +191,48 @@ function closeMedia() {
 }
 
 // 截取视频
-function drawMedia() {
-  canvas.setAttribute('width', video.videoWidth)
-  canvas.setAttribute('height', video.videoHeight)
-  context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight)
+async function drawMedia() {
+  // 截取图像
+  let canvas = document.querySelector('#qr-canvas');
+  let video = document.querySelector('#video');
+
+  const context = canvas.getContext('2d')
+  context.drawImage(video, 0, 0, canvas.width, canvas.height)
+  const blob = await new Promise(resolve => canvas.toBlob(resolve))
+
+  // 上传图像
+  const formData = new FormData()
+
+  const selectedParking = state.parking.find(p => p.value === state.form.parking)
+
+  formData.append('file', blob, 'screenshot.jpg')
+  formData.append('name', selectedParking.label);
+  formData.append('username', username);
+
+  // 调用上传方法
+ const response=await axios.post('http://localhost:8080/distinguish/upload',formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+
+  // 调用 handleUpload 方法，并传递参数 file
+  handleUpload(blob)
+  console.log(response.data.code)
+
+  if (response.data.code=='200'){
+    // 在此处调用 handleSuccess 方法，并将响应和文件对象作为参数传递
+    handleVideoSuccess(response, blob)
+  }else if (response.data.code){
+    ElMessage.error("识别失败")
+  }else {
+    ElMessage.error("识别失败")
+  }
 
 }
 
 onMounted(() => {
   init()
 })
+
 </script>

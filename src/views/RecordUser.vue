@@ -7,18 +7,15 @@ import {useUserStore} from "@/stores/user";
 
 
 const name = ref('')
-const intoTime = ref('')
-const outTime = ref('')
-
 const pageNum = ref(1)
 const pageSize = ref(5)
 const total = ref(0)
-
+const intoTime = ref('')
+const outTime = ref('')
 const userStore = useUserStore()
 const token = userStore.getBearerToken
 const auths =  userStore.getAuths
 const  uid = userStore.getUserId
-const flag = userStore.getFlag
 
 const state = reactive({
   tableData: [],
@@ -54,26 +51,11 @@ const confirmDelBatch = () => {
 }
 
 const load = () => {
-if (flag==="SUPERADMIN"){
-  request.get('/record/page', {
-    params: {
-      name: name.value,
-      intoTime: intoTime.value,
-      outTime: outTime.value,
-      pageNum: pageNum.value,
-      pageSize: pageSize.value
-    }
-  }).then(res => {
-    state.tableData = res.data.records
-    total.value = res.data.total
-  })
-}else {
-  request.get('/record/findRecordByAdmin', {
+  request.get('/record//findRecordByUid', {
     params: {
       uid: uid,
-      name: name.value,
       intoTime: intoTime.value,
-      outTime: outTime.value,
+      outTime : outTime.value,
       pageNum: pageNum.value,
       pageSize: pageSize.value
     }
@@ -81,7 +63,7 @@ if (flag==="SUPERADMIN"){
     state.tableData = res.data.records
     total.value = res.data.total
   })
-}
+
 }
 load()  // 调用 load方法拿到后台数据
 
@@ -154,6 +136,7 @@ const del = (id) => {
   })
 }
 
+
 const parkingInfo = async () => {
   try {
     const response = await request.get('/parking/all')
@@ -178,15 +161,13 @@ const getNameById = (id) => {
   const parkingLot = state.parking.find(p => p.value === id)
   return parkingLot ? parkingLot.label : ''
 }
-
-
-
 </script>
 
 <template>
   <div>
-    <div>
-      <el-input v-model="name" placeholder="请输入车牌名" class="w300" style="width: 300px;" />
+
+    <div style="margin: 10px 0">
+
       <span style="margin-left: 10px">入库时间 : </span>
       <el-input v-model="intoTime" placeholder="请输入入库时间" class="w300" style="width: 150px; margin-left: 20px" type="date"/>
       <span style="margin-left: 30px">出库时间 : </span>
@@ -196,69 +177,35 @@ const getNameById = (id) => {
           <Search />
         </el-icon>  <span style="vertical-align: middle"> 搜索 </span>
       </el-button>
-      <el-button type="warning" class="ml5" @click="reset">
-        <el-icon style="vertical-align: middle">
-          <RefreshLeft />
-        </el-icon>  <span style="vertical-align: middle"> 重置 </span>
-      </el-button>
 
-    </div>
-
-    <div style="margin: 10px 0">
-      <el-button type="success" @click="handleAdd" v-if="auths.includes('record.add')">
-        <el-icon style="vertical-align: middle">
-          <Plus />
-        </el-icon>  <span style="vertical-align: middle"> 新增 </span>
-      </el-button>
-      <el-popconfirm title="您确定删除吗？" @confirm="confirmDelBatch" v-if="auths.includes('record.deleteBatch')">
-        <template #reference>
-          <el-button type="danger" style="margin-left: 5px">
-            <el-icon style="vertical-align: middle">
-              <Remove />
-            </el-icon>  <span style="vertical-align: middle"> 批量删除 </span>
-          </el-button>
-        </template>
-      </el-popconfirm>
-    </div>
-
-    <div style="margin: 10px 0">
-      <el-table :data="state.tableData" stripe border  @selection-change="handleSelectionChange">
+      <el-table :data="state.tableData" stripe border  @selection-change="handleSelectionChange" style="margin-top: 10px">
         <el-table-column type="selection" width="55" />
-      <el-table-column prop="id" label="编号"></el-table-column>
-      <el-table-column prop="rid" label="记录号"></el-table-column>
+<!--      <el-table-column prop="id" label="编号"></el-table-column>-->
+        <el-table-column prop="rid" label="记录号"></el-table-column>
         <el-table-column prop="pid" label="停车场">
           <template #default="{ row }">
             {{ getNameById(row.pid) }}
           </template>
         </el-table-column>
-      <el-table-column prop="carNumber" label="车辆号"></el-table-column>
-        <el-table-column prop="psNumber" label="车位"></el-table-column>
-
-        <el-table-column label="停车场"  prop="pid">
-          <template #default="{ row }">
-            {{ getNameById(row.pid) }}
-          </template>
-        </el-table-column>
-
+        <el-table-column prop="carNumber" label="车辆号"></el-table-column>
       <el-table-column prop="intoTime" label="入库时间"></el-table-column>
       <el-table-column prop="outTime" label="出库时间"></el-table-column>
       <el-table-column prop="money" label="停车费用">
         <template #default="{row}">
           <span>{{row.money}}.00￥</span>
         </template>
-
       </el-table-column>
 
-        <el-table-column label="操作" width="180">
-          <template #default="scope">
-            <el-button type="primary" @click="handleEdit(scope.row)" v-if="auths.includes('record.edit')">编辑</el-button>
-            <el-popconfirm title="您确定删除吗？" @confirm="del(scope.row.id)" v-if="auths.includes('record.delete')">
-              <template #reference>
-                <el-button type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
+<!--        <el-table-column label="操作" width="180">-->
+<!--          <template #default="scope">-->
+<!--            <el-button type="primary" @click="handleEdit(scope.row)" v-if="auths.includes('record.edit')">编辑</el-button>-->
+<!--            <el-popconfirm title="您确定删除吗？" @confirm="del(scope.row.id)" v-if="auths.includes('record.delete')">-->
+<!--              <template #reference>-->
+<!--                <el-button type="danger">删除</el-button>-->
+<!--              </template>-->
+<!--            </el-popconfirm>-->
+<!--          </template>-->
+<!--        </el-table-column>-->
       </el-table>
     </div>
 
@@ -283,18 +230,6 @@ const getNameById = (id) => {
         <el-form-item prop="carNumber" label="车牌号">
           <el-input v-model="state.form.carNumber" autocomplete="off"></el-input>
         </el-form-item>
-
-        <el-form-item prop="parking" label="停车场  : ">
-          <el-select clearable v-model="state.form.pid" placeholder="请选择停车场">
-            <el-option v-for="item in state.parking" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item prop="psNumber" label="车牌号">
-          <el-input v-model="state.form.psNumber" autocomplete="off"></el-input>
-        </el-form-item>
-
-
         <el-form-item prop="intoTime" label="入库时间">
           <el-date-picker style="width: 100%" v-model="state.form.intoTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="选择日期时间"></el-date-picker>
         </el-form-item>
@@ -302,9 +237,9 @@ const getNameById = (id) => {
           <el-date-picker style="width: 100%" v-model="state.form.outTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" placeholder="选择日期时间"></el-date-picker>
         </el-form-item>
         <el-form-item prop="money" label="停车费用">
-          <el-input v-model="state.form.money" autocomplete="off"></el-input>
+          <el-input v-model="state.form.money" autocomplete="off">
+          </el-input>
         </el-form-item>
-
 
       </el-form>
       <template #footer>

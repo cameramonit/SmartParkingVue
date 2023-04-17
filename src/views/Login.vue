@@ -7,6 +7,20 @@ import {ElMessage} from "element-plus";
 import {User,Lock} from '@element-plus/icons-vue'
 import router from "../router";
 import request from "../utils/request";
+
+const rules = reactive({
+  username: [
+    { required: true, message: '请输入账号', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 3, max: 20, message: '密码长度在6-8 位之间', trigger: 'blur' },
+  ],
+})
+
+
+
+
 // 图形验证码
 let identifyCodes = "1234567890"
 let identifyCode = ref('')
@@ -54,34 +68,18 @@ export default {
               return
             }
           }
-          // axios.get('http://localhost:8080/login',{params:loginData}).then(function (response) {
-          //   if (response.data!='' || response.data !=null){ //localStorage.setItem存储token
-          //     localStorage.setItem('access-admin',JSON.stringify(response.data))
-          //     console.log(response)
-          //     console.log("账号密码正确")
-          //     console.log("开始校验验证码")
-          //     //userStore.setManagerInfo(res.data)//2023.3.4先加的
-          //     if (loginData.code !== identifyCode.value) {
-          //       ElMessage.warning('验证码错误')
-          //       console.log("验证码错误")
-          //       _this.$router.replace({path:'/login'})
-          //     }else {
-          //       _this.$router.replace({path:'/car'})//跳转到主页
-          //     }
-          //
-          //   }else alert("123")
-          //
-          // })
           request.post('/login', loginData).then(res => {
-            if (res == 200 || res.code == '200' ) {
+            if (res === 200 || res.code === '200' ) {
               localStorage.setItem('access-admin',JSON.stringify(res.data))
               ElMessage.success('登录成功')
               const userStore = useUserStore()
               userStore.setManagerInfo(res.data)
               _this.$router.replace({path:'/'})
             }else{
-              if(res.code=='500'){
+              if(res.code==='500'){
                 ElMessage.success('用户名或密码错误!')
+              }else if (res.code==='800' || res.code===800){
+                ElMessage.error(res.msg)
               }else {
                 ElMessage.success('登录失败'+res.msg)
               }
@@ -113,43 +111,45 @@ onMounted(() => {
 
 </script>
 <template>
-
-  <div style="height: 100vh;overflow: hidden;background-image: linear-gradient( 135deg, #F97794 10%, #623AA2 100%);" >
-    <div style="width: 400px;margin: 150px auto; border: 1px solid #ddd;border-radius: 10px; padding: 20px; background-color: white">
-      <el-form
-          ref="ruleFormRef"
-          :model="loginData"
-          :rules="rules"
-          size="large"
-          status-icon
-      >
-        <div style="text-align: center;color:dodgerblue; font-size: 20px;font-weight: bold;margin-bottom: 20px">登 录</div>
-        <el-form-item  prop="username">
-          <el-input v-model="loginData.username" placeholder="请输入账号" :prefix-icon="User"/>
-        </el-form-item>
-
-        <el-form-item  prop="password">
-          <el-input v-model="loginData.password" show-password placeholder="请输入密码" :prefix-icon="Lock"/>
-        </el-form-item>
-
-
-        <div style="display: flex; margin: 15px 0">
-          <div style="flex: 1">
-            <el-input v-model="loginData.code" placeholder="验证码"></el-input>
-          </div>
-          <div>
-            <div @click="refreshCode" style="margin-left: 5px">
-              <SIdentify :identifyCode="identifyCode" />
+  <div style="height: 100vh; overflow: hidden;background-image: linear-gradient( 135deg, #F97794 10%, #623AA2 100%);">
+    <div style="display: flex; width: 50%; margin: 120px auto; background-color: white;
+      box-shadow: 0 0 10px -2px rgba(65, 105, 225,.5); overflow: hidden; border-radius: 10px">
+      <div style="padding:30px">
+        <img src="../assets/bg2.png" alt="" style="width: 100%; margin-top:50px">
+      </div>
+      <div>
+        <div style="width: 400px; background-color: white; padding: 30px 40px;">
+          <el-form
+              ref="ruleFormRef"
+              :model="loginData"
+              :rules="rules"
+              size="large"
+              status-icon
+          >
+            <div style="text-align: center; color: dodgerblue; font-size: 30px; font-weight: bold; margin-bottom: 30px">登 录</div>
+            <el-form-item prop="username">
+              <el-input v-model="loginData.username" placeholder="请输入账号"  :prefix-icon="User" />
+            </el-form-item>
+            <el-form-item prop="password">
+              <el-input v-model="loginData.password" show-password placeholder="请输入密码" :prefix-icon="Lock" />
+            </el-form-item>
+            <div style="display: flex; margin: 15px 0">
+              <div style="flex: 1">
+                <el-input v-model="loginData.code" placeholder="验证码"></el-input>
+              </div>
+              <div>
+                <div @click="refreshCode" style="margin-left: 5px">
+                  <SIdentify :identifyCode="identifyCode" />
+                </div>
+              </div>
             </div>
-          </div>
+            <el-form-item>
+              <el-button type="primary" style="width: 100%" @click="handleSubmit">登 录</el-button>
+            </el-form-item>
+            <div style="text-align: right"><a style="text-decoration: none; color: dodgerblue" href="/register">还没有账号？去注册</a></div>
+          </el-form>
         </div>
-
-        <el-form-item>
-          <el-button type="primary" style="width: 100%;" @click="handleSubmit">登 录</el-button>
-        </el-form-item>
-
-      </el-form>
+      </div>
     </div>
   </div>
-
 </template>

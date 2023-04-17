@@ -18,12 +18,12 @@ const auths =  userStore.getAuths
 
 // let user = userStore.getUser
 const  uid = userStore.getUserId
-const flag = userStore.getFlag
+
 
 const state = reactive({
   tableData: [],
   form: {},
-  parking: [],
+  parking:[]
 })
 
 const valueHtml = ref('')  // 富文本内容
@@ -54,24 +54,9 @@ const confirmDelBatch = () => {
 }
 
 const load = () => {
-  if(flag==="SUPERADMIN"){
-
-    request.get('/order/page', {
-      params: {
-        name: name.value,
-        payTime: payTime.value,
-        pageNum: pageNum.value,
-        pageSize: pageSize.value
-      }
-    }).then(res => {
-      state.tableData = res.data.records
-      total.value = res.data.total
-    })
-  }else {
-    request.get('/order/findOrderByAdmin', {
+    request.get('/order/findOrderByUid', {
       params: {
         uid: uid,
-        name: name.value,
         payTime: payTime.value,
         pageNum: pageNum.value,
         pageSize: pageSize.value
@@ -80,8 +65,6 @@ const load = () => {
       state.tableData = res.data.records
       total.value = res.data.total
     })
-
-  }
 }
 load()  // 调用 load方法拿到后台数据
 
@@ -156,6 +139,15 @@ const del = (id) => {
     }
   })
 }
+const handleFileUploadSuccess = (res) => {
+  state.form.file = res.data
+  ElMessage.success('上传成功')
+}
+const handleImgUploadSuccess = (res) => {
+  state.form.img = res.data
+  ElMessage.success('上传成功')
+}
+
 
 const getNameById = (id) => {
   const parkingLot = state.parking.find(p => p.value === id)
@@ -182,18 +174,6 @@ onMounted(() => {
   parkingInfo()
 })
 
-
-const psvalue = ref(0)
-const options = [
-  {
-    value: 0,
-    label: "已支付",
-  },
-  {
-    value: 1,
-    label: '未支付',
-  },
-]
 </script>
 <script>
 export default {
@@ -206,44 +186,18 @@ export default {
 </script>
 <template>
   <div>
-    <div>
-      <el-input v-model="name" placeholder="请输入车牌号" class="w300" style="width: 300px"/>
-      <span style="margin-left: 10px">支付时间</span>
-      <el-input v-model="payTime" placeholder="请输入入库时间" class="w300" style="width: 150px; margin-left: 20px" type="date"/>
+
+    <div style="margin: 10px 0">
+      <span style="margin-left: 10px">支付时间 : </span>
+      <el-input v-model="payTime" placeholder="请输入支付时间" class="w300" style="width: 150px; margin-left: 20px" type="date"/>
       <el-button type="primary" class="ml5" @click="load" style="margin-left:20px">
         <el-icon style="vertical-align: middle">
           <Search />
         </el-icon>  <span style="vertical-align: middle;"> 搜索 </span>
       </el-button>
-      <el-button type="warning" class="ml5" @click="reset">
-        <el-icon style="vertical-align: middle">
-          <RefreshLeft />
-        </el-icon>  <span style="vertical-align: middle"> 重置 </span>
-      </el-button>
-
-    </div>
-
-    <div style="margin: 10px 0">
-      <el-button type="success" @click="handleAdd" v-if="auths.includes('order.add')">
-        <el-icon style="vertical-align: middle">
-          <Plus />
-        </el-icon>  <span style="vertical-align: middle"> 新增 </span>
-      </el-button>
-      <el-popconfirm title="您确定删除吗？" @confirm="confirmDelBatch" v-if="auths.includes('order.deleteBatch')">
-        <template #reference>
-          <el-button type="danger" style="margin-left: 5px">
-            <el-icon style="vertical-align: middle">
-              <Remove />
-            </el-icon>  <span style="vertical-align: middle"> 批量删除 </span>
-          </el-button>
-        </template>
-      </el-popconfirm>
-    </div>
-
-    <div style="margin: 10px 0">
-      <el-table :data="state.tableData" stripe border  @selection-change="handleSelectionChange">
+      <el-table :data="state.tableData" stripe border  @selection-change="handleSelectionChange" style="margin-top: 10px">
         <el-table-column type="selection" width="55" />
-      <el-table-column prop="uid" label="用户编号"></el-table-column>
+<!--      <el-table-column prop="uid" label="用户编号"></el-table-column>-->
       <el-table-column prop="carNumber" label="车牌号"></el-table-column>
       <el-table-column prop="oid" label="订单号"></el-table-column>
       <el-table-column prop="pid" label="停车场">
@@ -257,20 +211,16 @@ export default {
           <span v-else>已支付</span>
         </template>
       </el-table-column>
+<!--      <el-table-column prop="money" label="停车费用"></el-table-column>-->
         <el-table-column prop="money" label="停车费用￥" :formatter="formatMoney"></el-table-column>
       <el-table-column prop="payTime" label="支付时间"></el-table-column>
       <el-table-column prop="alipayNo" label="支付宝交易凭证号"></el-table-column>
         <el-table-column label="操作" width="180">
           <template #default="scope">
-            <el-button type="primary" @click="handleEdit(scope.row)" v-if="auths.includes('order.edit')">编辑</el-button>
-            <el-popconfirm title="您确定删除吗？" @confirm="del(scope.row.id)" v-if="auths.includes('order.delete')">
-              <template #reference>
-                <el-button type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
-
+            <el-button type="primary" @click="pay(scope.row)" v-if="scope.row.state === 0 && scope.row.money > 0 && uid!=1">支 付</el-button>
           </template>
         </el-table-column>
+
       </el-table>
     </div>
 
@@ -292,21 +242,11 @@ export default {
         <el-form-item prop="oid" label="订单号">
           <el-input v-model="state.form.oid" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item prop="parking" label="停车场  : ">
-          <el-select clearable v-model="state.form.pid" placeholder="请选择停车场">
-            <el-option v-for="item in state.parking" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
+        <el-form-item prop="psid" label="车位">
+          <el-input v-model="state.form.psid" autocomplete="off"></el-input>
         </el-form-item>
         <el-form-item prop="state" label="支付状态">
-          <el-select v-model="state.form.state" placeholder="车位状态">
-            <el-option
-                v-for="item in options"
-                :key="item.psvalue"
-                :label="item.label"
-                :value="item.value"
-                :disabled="item.disabled"
-            />
-          </el-select>
+          <el-input v-model="state.form.state" autocomplete="off"></el-input>
         </el-form-item>
         <el-form-item prop="moeny" label="停车费用">
           <el-input v-model="state.form.moeny" autocomplete="off"></el-input>

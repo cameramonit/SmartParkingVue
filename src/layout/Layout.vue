@@ -4,34 +4,28 @@ import router from "@/router";
 import {useUserStore} from "@/stores/user";
 import request from "@/utils/request";
 import {ElMessage} from "element-plus";
+
+
 const userStore = useUserStore()
 let user = userStore.getUser
+const  uid = userStore.getUserId
+const flag =userStore.getFlag
 const activePath = router.currentRoute.value.path.replace('/', '')
-
-const logout = () => {
-  request.get('/logout/' + user.uid).then(res => {
-    if (res.code === '200') {
-      userStore.logout()
-    } else {
-      ElMessage.error(res.msg)
-    }
-  })
-}
 const menus = userStore.getMenus
 
 const getAvatarHandler = (avatar) => {
   user.avatar = avatar
 }
-console.log(menus)
 </script>
 
 <template>
   <div>
     <div style="height: 60px; line-height: 60px; border-bottom: 1px solid #ccc; background-color: aliceblue">
       <div style="display: flex">
-        <div style="width: 200px; color: dodgerblue; font-weight: bold;  text-align: center; font-size: 20px">
-          <img src="../assets/icon.png" alt="" style="width: 40px; position: relative; top: 12px">
-          后台管理系统
+        <div style="width: 200px; color: dodgerblue; font-weight: bold;  text-align: center; font-size: 20px;">
+          <img src="src/assets/layLogo.png" alt="" style="width: 40px; position: relative; top: 12px">
+          <span style="font-weight: bolder" v-if="flag!=='SUPERADMIN'">SmartParking</span>
+          <span v-else style="font-weight: bolder">后台管理系统</span>
         </div>
 
         <div style="flex: 1; display: flex">
@@ -45,7 +39,7 @@ console.log(menus)
                 <el-dropdown-menu>
                   <el-dropdown-item><div @click="router.push('/person')">个人信息</div></el-dropdown-item>
                   <el-dropdown-item><div @click="router.push('/password')">修改密码</div></el-dropdown-item>
-                  <el-dropdown-item><div @click="logout">退出登录</div></el-dropdown-item>
+                  <el-dropdown-item><div @click="router.push('/login')">退出登录</div></el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
