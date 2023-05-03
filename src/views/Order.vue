@@ -207,8 +207,9 @@ export default {
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入车牌号" class="w300" style="width: 300px"/>
-      <span style="margin-left: 10px">支付时间</span>
+      <span style="margin-left: 5px">车牌号 : </span>
+      <el-input v-model="name" placeholder="请输入车牌号" class="w300" style="width: 300px;margin-left: 5px"/>
+      <span style="margin-left: 10px">支付时间 : </span>
       <el-input v-model="payTime" placeholder="请输入入库时间" class="w300" style="width: 150px; margin-left: 20px" type="date"/>
       <el-button type="primary" class="ml5" @click="load" style="margin-left:20px">
         <el-icon style="vertical-align: middle">

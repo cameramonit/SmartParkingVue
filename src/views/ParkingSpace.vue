@@ -6,7 +6,7 @@ import config from "../../config";
 import {useUserStore} from "@/stores/user";
 
 
-const name = ref(0)
+const name = ref("")
 const pageNum = ref(1)
 const pageSize = ref(5)
 const total = ref(0)
@@ -18,10 +18,12 @@ const uid = userStore.getUserId
 const  flag = userStore.getFlag
 
 
-
+let DEFAULT_PARKING = ref(0)
 const state = reactive({
   tableData: [],
-  form: {},
+  form: {
+    parking: DEFAULT_PARKING
+  },
   parking: []
 })
 
@@ -56,7 +58,8 @@ const load = () => {
   if (flag === 'SUPERADMIN'){
     request.get('/parkingSpace/page', {
       params: {
-        name: name.value,
+        psNumber: name.value,
+        pid:state.form.parking,
         pageNum: pageNum.value,
         pageSize: pageSize.value
       }
@@ -67,7 +70,7 @@ const load = () => {
   }else {
     request.get('/parkingSpace/adminpage', {
       params: {
-        name: name.value,
+        psNumber: name.value,
         uid:uid,
         pageNum: pageNum.value,
         pageSize: pageSize.value
@@ -192,19 +195,38 @@ const getNameById = (id) => {
 
 <template>
   <div>
-    <div>
-      <el-input v-model="name" placeholder="请输入车位号" class="w300" style="width: 300px;" />
-      <el-button type="primary" class="ml5" @click="load">
+    <div style="display: flex; align-items: center;" v-if="flag==='ADMIN'">
+      <span style="margin-left: 5px">车位号 :</span>
+      <el-input v-model="name" placeholder="请输入车位号" class="w300" style="width: 300px; margin-left: 10px"/>
+      <el-button type="primary" class="ml5" @click="load" style="margin-left: 20px">
         <el-icon style="vertical-align: middle">
           <Search />
-        </el-icon>  <span style="vertical-align: middle"> 搜索 </span>
+        </el-icon>  <span style="vertical-align: middle;"> 搜索 </span>
       </el-button>
-      <el-button type="warning" class="ml5" @click="reset">
+      <el-button type="warning" class="ml5" @click="reset" style="margin-left: 10px">
         <el-icon style="vertical-align: middle">
           <RefreshLeft />
         </el-icon>  <span style="vertical-align: middle"> 重置 </span>
       </el-button>
+    </div>
 
+    <div style="display: flex; align-items: center;" v-if="flag==='SUPERADMIN'">
+      <el-form-item prop="parking" label="停车场  : " style="margin-top: 17px;">
+        <el-select clearable v-model="state.form.parking" placeholder="请选择停车场" style="width: 300px" >
+          <el-option v-for="item in state.parking" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+      </el-form-item>
+       <span style="margin-left: 5px">车位号 :</span> <el-input v-model="name" placeholder="请输入车位号" class="w300" style="width: 300px; margin-left: 10px"/>
+      <el-button type="primary" class="ml5" @click="load" style="margin-left: 20px">
+        <el-icon style="vertical-align: middle">
+          <Search />
+        </el-icon>  <span style="vertical-align: middle;"> 搜索 </span>
+      </el-button>
+      <el-button type="warning" class="ml5" @click="reset" style="margin-left: 10px">
+        <el-icon style="vertical-align: middle">
+          <RefreshLeft />
+        </el-icon>  <span style="vertical-align: middle"> 重置 </span>
+      </el-button>
     </div>
 
     <div style="margin: 10px 0">

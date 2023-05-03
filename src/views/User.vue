@@ -172,7 +172,8 @@ onMounted(() => {
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入名称" class="w300" style="width: 300px"/>
+      <span style="margin-left: 5px">用户名 : </span>
+      <el-input v-model="name" placeholder="请输入用户名" class="w300" style="width: 300px ;margin-left: 5px"/>
       <el-button type="primary" class="ml5" @click="load" style="margin-left: 10px">
         <el-icon style="vertical-align: middle">
           <Search />

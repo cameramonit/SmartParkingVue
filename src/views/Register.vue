@@ -12,6 +12,11 @@ import router from "@/router";
     ],
     email: [
       { required: true, message: '请输入邮箱', trigger: 'blur' },
+      {
+        pattern: /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]+$/,
+        message: '请输入有效的电子邮件地址',
+        trigger: 'blur'
+      },
     ],
     password: [
       { required: true, message: '请输入密码', trigger: 'blur' },

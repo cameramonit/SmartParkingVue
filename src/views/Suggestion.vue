@@ -189,7 +189,8 @@ const handleImportSuccess = () => {
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入用户名来查询" class="w300"  style="margin-top: 5px;width: 300px"/>
+      <span style="margin-left: 5px">用户名 : </span>
+      <el-input v-model="name" placeholder="请输入用户名来查询" class="w300"  style="margin-top: 5px;width: 300px;margin-left: 5px"/>
       <el-button type="primary" class="ml5" @click="load" style="margin-left: 5px;margin-top: 5px">
         <el-icon style="vertical-align: middle;">
           <Search />
@@ -276,20 +277,6 @@ const handleImportSuccess = () => {
           <el-input v-model="state.form.username" autocomplete="off" :disabled="true"></el-input>
         </el-form-item>
         <el-form-item prop="content" label="建议内容">
-          <!--          <div style="border: 1px solid #ccc">-->
-          <!--            <Toolbar-->
-          <!--                style="border-bottom: 1px solid #ccc"-->
-          <!--                :editor="editorRef"-->
-          <!--                :mode="'simple'"-->
-          <!--            />-->
-          <!--            <Editor-->
-          <!--                style="height: 300px; overflow-y: hidden;"-->
-          <!--                v-model="valueHtml"-->
-          <!--                :defaultConfig="editorConfig"-->
-          <!--                :mode="'simple'"-->
-          <!--                @onCreated="handleCreated"-->
-          <!--            />-->
-          <!--          </div>-->
           <el-input v-model="state.form.content" autocomplete="off"></el-input>
         </el-form-item>
         <el-form-item prop="reply" label="回复内容" v-if="flag!=='USER'">

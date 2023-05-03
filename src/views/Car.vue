@@ -53,7 +53,7 @@ const confirmDelBatch = () => {
 
 const load = () => {
 
-  if(flag==="SUPERADMIN"){
+  if(flag!=="USER"){
     request.get('/car/page', {
       params: {
         name: name.value,
@@ -161,21 +161,14 @@ const handleCarNumberSuccess = (response, file, fileList) => {
   toRaw(state.form).carNumber = carNumber;
 }
 
-const handleFileUploadSuccess = (res) => {
-  state.form.file = res.data
-  ElMessage.success('上传成功')
-}
-const handleImgUploadSuccess = (res) => {
-  state.form.img = res.data
-  ElMessage.success('上传成功')
-}
 
 </script>
 
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入名称" class="w300" style="width: 300px"/>
+      <span style="margin-left: 5px">车牌号 : </span>
+      <el-input v-model="name" placeholder="请输入车牌号" class="w300" style="width: 300px ;margin-left: 5px"/>
       <el-button type="primary" class="ml5" @click="load" style="margin-left: 10px">
         <el-icon style="vertical-align: middle;">
           <Search />

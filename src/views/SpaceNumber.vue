@@ -18,11 +18,34 @@ const auths =  userStore.getAuths
 const uid = userStore.getUserId
 const flag = userStore.getFlag
 
-
+let DEFAULT_PARKING = ref(0)
 const state = reactive({
   tableData: [],
-  form: {},
+  form: {
+    parking: DEFAULT_PARKING
+  },
   parking: [],
+})
+
+
+const parkingInfo = async () => {
+  try {
+    const response = await request.get('/parking/all')
+    if (response && response.data) {
+      const parking = response.data.map(item => ({
+        label: item.name,
+        value: item.pid
+      }))
+      state.parking = parking
+      state.form.parking = parking[0].value // 给 v-model 赋初始值
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取停车场列表数据失败')
+  }
+}
+onMounted(() => {
+  parkingInfo()
 })
 
 const valueHtml = ref('')  // 富文本内容
@@ -55,13 +78,15 @@ const confirmDelBatch = () => {
 const load = () => {
     request.get('/parkingSpace/page', {
       params: {
-        name: name.value,
+        psNumber: name.value,
+        pid:state.form.parking,
         pageNum: pageNum.value,
         pageSize: pageSize.value
       }
     }).then(res => {
       state.tableData = res.data.records
       total.value = res.data.total
+
     })
 
 
@@ -134,48 +159,6 @@ const del = (id) => {
     }
   })
 }
-
-// 导出接口
-const exportData = () => {
-  window.open(`http://${config.serverUrl}/parkingSpace/export`)
-}
-
-
-const handleImportSuccess = () => {
-  // 刷新表格
-  load()
-  ElMessage.success("导入成功")
-}
-
-const handleFileUploadSuccess = (res) => {
-  state.form.file = res.data
-  ElMessage.success('上传成功')
-}
-const handleImgUploadSuccess = (res) => {
-  state.form.img = res.data
-  ElMessage.success('上传成功')
-}
-
-
-const parkingInfo = async () => {
-  try {
-    const response = await request.get('/parking/all')
-    if (response && response.data) {
-      const parking = response.data.map(item => ({
-        label: item.name,
-        value: item.pid
-      }))
-      state.parking = parking
-      state.form.parking = parking[0].value // 给 v-model 赋初始值
-    }
-  } catch (error) {
-    console.error(error)
-    ElMessage.error('获取停车场列表数据失败')
-  }
-}
-onMounted(() => {
-  parkingInfo()
-})
 
 
 const psvalue = ref(0)
@@ -259,19 +242,24 @@ const startTimer = (row) => {
 
 <template>
   <div>
-    <div>
-      <el-input v-model="name" placeholder="请输入名称" class="w300" style="width: 300px"/>
-      <el-button type="primary" class="ml5" @click="load" style="margin-left:20px">
+    <div style="display: flex; align-items: center;">
+      <el-form-item prop="parking" label="停车场  : " style="margin-top: 17px;">
+        <el-select clearable v-model="state.form.parking" placeholder="请选择停车场" style="width: 300px" >
+          <el-option v-for="item in state.parking" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+      </el-form-item>
+      <span style="margin-left: 8px">车位号 : </span>
+      <el-input v-model="name" placeholder="请输入车位号" class="w300" style="width: 300px; margin-left: 10px"/>
+      <el-button type="primary" class="ml5" @click="load" style="margin-left: 20px">
         <el-icon style="vertical-align: middle">
           <Search />
         </el-icon>  <span style="vertical-align: middle;"> 搜索 </span>
       </el-button>
-      <el-button type="warning" class="ml5" @click="reset">
+      <el-button type="warning" class="ml5" @click="reset" style="margin-left: 10px">
         <el-icon style="vertical-align: middle">
           <RefreshLeft />
         </el-icon>  <span style="vertical-align: middle"> 重置 </span>
       </el-button>
-
     </div>
 
     <div style="margin: 10px 0">

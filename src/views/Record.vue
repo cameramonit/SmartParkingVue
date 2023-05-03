@@ -186,7 +186,8 @@ const getNameById = (id) => {
 <template>
   <div>
     <div>
-      <el-input v-model="name" placeholder="请输入车牌名" class="w300" style="width: 300px;" />
+      <span style="margin-left: 5px">车牌号 : </span>
+      <el-input v-model="name" placeholder="请输入车牌号" class="w300" style="width: 300px;margin-left: 5px" />
       <span style="margin-left: 10px">入库时间 : </span>
       <el-input v-model="intoTime" placeholder="请输入入库时间" class="w300" style="width: 150px; margin-left: 20px" type="date"/>
       <span style="margin-left: 30px">出库时间 : </span>
@@ -290,7 +291,7 @@ const getNameById = (id) => {
           </el-select>
         </el-form-item>
 
-        <el-form-item prop="psNumber" label="车牌号">
+        <el-form-item prop="psNumber" label="车位号">
           <el-input v-model="state.form.psNumber" autocomplete="off"></el-input>
         </el-form-item>
 

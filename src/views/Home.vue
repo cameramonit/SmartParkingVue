@@ -161,6 +161,7 @@ onMounted(() => {
 
 
 <style>
+
 .container {
   display: flex;
   justify-content: space-between;
@@ -177,6 +178,7 @@ onMounted(() => {
   margin-top: 10px;
 }
 
+
 .parking-details {
   display: flex;
   align-items: center;
@@ -184,15 +186,29 @@ onMounted(() => {
 
 .parking-image {
   height: 50px;
-  margin-right: 5px;
+  margin-right: 10px;
+}
+.parking-number-container {
+  text-align: center;
+  color: dodgerblue;
 }
 
+.parking-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.parking-number {
+  font-size: 24px;
+  font-weight: bold;
+}
 #chart3 {
   margin-top: 50px;
 }
 
 h2 {
-  margin-top: 30px;
+  margin-top: 10px;
 }
 
 ul {
@@ -208,7 +224,7 @@ li {
 .right-container{
   margin-right: 50px;
   padding: 20px;
-  border: 1px solid #ccc;
+  border: 3px solid #ccc;
   background-color: #f5f5f5;
   font-size: 16px;
   color: #333;
